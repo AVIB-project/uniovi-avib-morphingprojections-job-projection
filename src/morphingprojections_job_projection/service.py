@@ -5,7 +5,7 @@ import time
 import argparse
 import logging
 
-from datetime import date
+from datetime import date, datetime
 from io import StringIO, BytesIO
 from pyaml_env import parse_config
 
@@ -365,10 +365,10 @@ def save_resource_by_case_id(config, case, datamatrix_resources, space, resource
 
         # save the new index
         if (resource is None):
-            resource = Resource(case_id=case.id, bucket=bucket, file=key_object_name, type=resource_type, description=description, creation_by="Administrator", creation_date=date.today())                
+            resource = Resource(case_id=case.id, bucket=bucket, file=key_object_name, type=resource_type, description=description, creation_by="Administrator", creation_date=datetime.now())                
         else:
             resource.updated_by = "Administrator"
-            resource.updated_date=date.today()
+            resource.updated_date=datetime.now()
 
         resource.save()
 

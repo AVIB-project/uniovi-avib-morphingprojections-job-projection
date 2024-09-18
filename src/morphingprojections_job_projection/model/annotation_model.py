@@ -1,4 +1,4 @@
-from mongoengine import Document, UUIDField, StringField, BooleanField, DictField, EnumField, DateField
+from mongoengine import Document, UUIDField, StringField, BooleanField, DictField, EnumField, DateTimeField
 
 from enumeration.annotation_group_enum import AnnotationGroupEnum
 from enumeration.annotation_encoding_enum import AnnotationEncodingEnum
@@ -23,9 +23,9 @@ class Annotation(Document):
     colorized = BooleanField(db_field='colorized', required=True)    
     required = BooleanField(db_field='required', required=True)    
     creation_by = StringField(db_field='creation_by')
-    creation_date = DateField(db_field='creation_date')
+    creation_date = DateTimeField(db_field='creation_date')
     updated_by = StringField(db_field='updated_by')
-    updated_date = DateField(db_field='updated_date')
+    updated_date = DateTimeField(db_field='updated_date')
 
     def _init__(self, case_id, group, space, precalculated, projected_by_annotation, projected_by_annotation_value, encoding, encoding_name, type, name, label, description, values, projection, colorized, required, creation_by, creation_date, updated_by, updated_date):
         self.case_id=case_id,

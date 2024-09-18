@@ -1,4 +1,4 @@
-from mongoengine import Document, UUIDField, StringField, BooleanField, DictField, EnumField, DateField, ObjectIdField
+from mongoengine import Document, UUIDField, StringField, BooleanField, DictField, EnumField, DateTimeField, ObjectIdField
 
 from enumeration.case_type import CaseTypeEnum
 
@@ -9,9 +9,9 @@ class Case(Document):
     type = EnumField(CaseTypeEnum, db_field='type', required=True)    
     image_id = ObjectIdField(db_field='image_id', required=True)
     creation_by = StringField(db_field='creation_by')
-    creation_date = DateField(db_field='creation_date')
+    creation_date = DateTimeField(db_field='creation_date')
     updated_by = StringField(db_field='updated_by')
-    updated_date = DateField(db_field='updated_date')
+    updated_date = DateTimeField(db_field='updated_date')
 
     def _init__(self, project_id, type, name, description, creation_by, creation_date, updated_by, updated_date):
         self.project_id=project_id,

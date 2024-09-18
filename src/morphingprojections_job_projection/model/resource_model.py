@@ -1,4 +1,4 @@
-from mongoengine import Document, UUIDField, StringField, EnumField, DateField, ObjectIdField
+from mongoengine import Document, UUIDField, StringField, EnumField, DateTimeField, ObjectIdField
 
 from enumeration.resource_type import ResourceTypeEnum
 
@@ -9,9 +9,9 @@ class Resource(Document):
     type = EnumField(ResourceTypeEnum, db_field='type', required=True)
     description = StringField(db_field='description')
     creation_by = StringField(db_field='creation_by')
-    creation_date = DateField(db_field='creation_date')
+    creation_date = DateTimeField(db_field='creation_date')
     updated_by = StringField(db_field='updated_by')
-    updated_date = DateField(db_field='updated_date')
+    updated_date = DateTimeField(db_field='updated_date')
 
     def _init__(self, case_id, bucket, file, type, description, creation_by, creation_date, updated_by, updated_date):
         self.case_id=case_id
