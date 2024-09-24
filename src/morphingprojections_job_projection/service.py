@@ -63,13 +63,6 @@ def parse_args(args):
         help="Case Id"
     )
     parser.add_argument(
-        "-remove-index",
-        "--remove-index",
-        dest="remove_index",
-        default=True,
-        help="Remove index"
-    )
-    parser.add_argument(
         "-spaces",
         "--spaces",
         dest="spaces",
@@ -155,7 +148,7 @@ def create_resources_type_dataframe(config, resource_type, resources):
             if dataframe is None:
                 dataframe = pd.read_csv(response, header=[0], index_col=[0], keep_default_na=False)                
             else:            
-                dataframe = pd.concat([dataframe, pd.read_csv(response, header=[0], index_col=[0])])
+                dataframe = pd.concat([dataframe, pd.read_csv(response, header=[0], index_col=[0])], keep_default_na=False)
 
             # close and release connection
             response.close()
@@ -217,8 +210,15 @@ def create_datamatrix_by_space(dataframe, space):
     elif (space == AnnotationSpaceEnum.DUAL.value):
         return dataframe.T
 
-def create_projection_dataframe(datamatrix_dataframe, sample_annotations_dataframe, attribute_annotations_dataframe, case_annotations_dataset, space):
-    # get projection annotations
+def create_projection_dataframe(
+    datamatrix_dataframe, 
+    sample_annotations_dataframe,
+    attribute_annotations_dataframe,
+    sample_precalculated_annotations_dataframe,
+    attribute_precalculated_annotations_dataframe,
+    case_annotations_dataset,
+    space):
+    # get projection annotations from all required ones
     projection_annotations_dataset = [case_annotation for case_annotation in case_annotations_dataset if case_annotation.group.value == AnnotationGroupEnum.PROJECTION.value]
 
     # initialize projection dataframe
@@ -227,7 +227,25 @@ def create_projection_dataframe(datamatrix_dataframe, sample_annotations_datafra
     # calculate projections with sample annotation atatched for each projection calculated
     for projection_annotation in projection_annotations_dataset:
         if (projection_annotation.precalculated == True):
-           _logger.info("TODO")
+            _logger.info("find precalculated annotations in space dataframe")
+
+            # find precalculated annotation column values from dataframe
+            if(projection_annotation.space == AnnotationSpaceEnum.PRIMAL.value):
+                precalculated_annotations_dataframe = sample_precalculated_annotations_dataframe[["x_" + projection_annotation.name, "y_" + projection_annotation.name]]
+
+                # merge the precalculated annotations in final dataframe projection
+                if projection_dataframe.empty:
+                    projection_dataframe = precalculated_annotations_dataframe
+                else:
+                    projection_dataframe = projection_dataframe.merge(precalculated_annotations_dataframe, how='inner', on='sample_id')
+            elif(projection_annotation.space == AnnotationSpaceEnum.DUAL.value):                
+                precalculated_annotations_dataframe = attribute_precalculated_annotations_dataframe[["x_" + projection_annotation.name, "y_" + projection_annotation.name]]                          
+
+                # merge the precalculated annotations in final dataframe projection
+                if projection_dataframe.empty:
+                    projection_dataframe = precalculated_annotations_dataframe
+                else:
+                    projection_dataframe = projection_dataframe.merge(precalculated_annotations_dataframe, how='inner', on='attribute_id')                
         else:
             # if projection is grouped by annotation
             if (projection_annotation.projected_by_annotation is not None and projection_annotation.projected_by_annotation != ""):
@@ -259,7 +277,7 @@ def create_projection_dataframe(datamatrix_dataframe, sample_annotations_datafra
             else:
                 perplexity = _TSNE_PERPLEXITY
 
-            # configure and execute the t-SNE model with these parameters
+            # configure and execute the t-SNE model with default parameters
             tsne = TSNE(perplexity=perplexity, learning_rate=200, n_iter=2000, n_components=2, method='barnes_hut', verbose=2, init='pca')
                 
             print(datamatrix_dataframe_grouped.head())
@@ -268,13 +286,13 @@ def create_projection_dataframe(datamatrix_dataframe, sample_annotations_datafra
             dataframe_projection = pd.DataFrame(projection, index=datamatrix_dataframe_grouped.index, columns=['x', 'y'])
 
             # normalized between 0 and 1 the projection dataset
-            _logger.info("Normalize t-SNE projections")
+            _logger.info("Normalize t-SNE projection")
 
             scaler = MinMaxScaler()
             dataframe_projection = pd.DataFrame(scaler.fit_transform(dataframe_projection), index=dataframe_projection.index, columns=['x', 'y'])
         
-            # set projection column name from annotation projected name
-            _logger.info("Add metadata to t-SNE projections")
+            # rename projection column from projection results
+            _logger.info("Add metadata to t-SNE projection")
 
             if (projection_annotation.projected_by_annotation is not None):
                 dataframe_projection.rename(columns=
@@ -285,7 +303,7 @@ def create_projection_dataframe(datamatrix_dataframe, sample_annotations_datafra
                     {"x": "x_" + projection_annotation.name,
                      "y": "y_" + projection_annotation.name}, inplace = True)
 
-            # merge the new projection results to the previous dataframe
+            # merge projection results in final dataframe projection
             if projection_dataframe.empty:
                 projection_dataframe = dataframe_projection
             else:
@@ -420,10 +438,11 @@ def main(args):
     
     # get job arguments
     case_id = args.case_id
-    remove_index = args.remove_index
     spaces = args.spaces
 
-    # get environment variables from active profile            
+    _logger.info("Projection for case id: " + case_id + " and spaces: " + ','.join(spaces))
+
+    # get job active profile            
     if not os.getenv('ARG_PYTHON_PROFILES_ACTIVE'):
         config = parse_config('./src/morphingprojections_job_projection/environment/environment.yaml')        
     else:
@@ -440,6 +459,8 @@ def main(args):
     datamatrix_resources = get_resources_type_by_case_id(config, ResourceTypeEnum.DATAMATRIX.value, case_id)
     sample_resources = get_resources_type_by_case_id(config, ResourceTypeEnum.SAMPLE_ANOTATION.value, case_id)
     attribute_resources = get_resources_type_by_case_id(config, ResourceTypeEnum.ATTRIBUTE_ANOTATION.value, case_id)
+    sample_precalculated_resources = get_resources_type_by_case_id(config, ResourceTypeEnum.SAMPLE_PRECALCULATED_ANNOTATION.value, case_id)
+    attribute_precalculated_resources = get_resources_type_by_case_id(config, ResourceTypeEnum.ATTRIBUTE_PRECALCULATED_ANNOTATION.value, case_id)
 
     # STEP03: create resource type dataframes from case indentifier from minio object storage
     _logger.info("STEP03: Create resource type dataframes from case indentifier: %s ", case_id)
@@ -455,34 +476,45 @@ def main(args):
     if len(attribute_resources) > 0:        
         attribute_annotations_dataframe = create_resources_type_dataframe(config, ResourceTypeEnum.ATTRIBUTE_ANOTATION.value, attribute_resources)
 
+    sample_precalculated_annotations_dataframe = None
+    if len(sample_precalculated_resources) > 0:        
+        sample_precalculated_annotations_dataframe = create_resources_type_dataframe(config, ResourceTypeEnum.SAMPLE_PRECALCULATED_ANNOTATION.value, sample_precalculated_resources)
+
+    attribute_precalculated_annotations_dataframe = None        
+    if len(attribute_precalculated_resources) > 0:        
+        attribute_precalculated_annotations_dataframe = create_resources_type_dataframe(config, ResourceTypeEnum.ATTRIBUTE_PRECALCULATED_ANNOTATION.value, attribute_precalculated_resources)
+
     # create all space projections: (primal, dual)
     for space in spaces:
         # STEP04: get required space annotations for space and case identifier from mongodb database
         _logger.info("STEP04: Get required space annotations for space %s and case indentifier: %s ", space, case_id)
         space_annotations_dataset = get_annotations_by_space(config, case_id, space)
 
-        # STEP05: get required project annotations for case identifier from mongodb database
-        _logger.info("STEP05: Get required project annotations for case indentifier: %s ", case_id)
-        projection_annotations_dataset = get_annotations_by_group(config, case_id, AnnotationGroupEnum.PROJECTION.value)
-
-        # STEP06: create datamatrix by space
-        _logger.info("STEP06: Create datamatrix by space %s and case indentifier: %s ", space, case_id)
+        # STEP05: create datamatrix by space
+        _logger.info("STEP05: Create datamatrix by space %s and case indentifier: %s ", space, case_id)
         datamatrix_dataframe = create_datamatrix_by_space(datamatrix_dataframe, space)
 
-        # STEP07: create projection dataset
-        _logger.info("STEP07: Create projection dataframe from space %s and case id: %s ", space, case_id)
-        projections_dataframe = create_projection_dataframe(datamatrix_dataframe, sample_annotations_dataframe, attribute_annotations_dataframe, space_annotations_dataset, space)
+        # STEP06: create projection dataset
+        _logger.info("STEP06: Create projection dataframe from space %s and case id: %s ", space, case_id)
+        projections_dataframe = create_projection_dataframe(
+            datamatrix_dataframe,
+            sample_annotations_dataframe,
+            attribute_annotations_dataframe,
+            sample_precalculated_annotations_dataframe,
+            attribute_precalculated_annotations_dataframe,
+            space_annotations_dataset,
+            space)
 
-        # STEP08: exist resource by case and space        
-        _logger.info("STEP08: Exist resource from space %s and case id: %s ", space, case_id)
+        # STEP07: exist resource by case and space        
+        _logger.info("STEP07: Exist resource from space %s and case id: %s ", space, case_id)
         resource = exist_resource_by_case_id(config, case, datamatrix_resources, space)
 
-        # STEP09: save resource by case and space if not exist        
-        _logger.info("STEP09: Save resource from space %s and case id: %s ", space, case_id)
+        # STEP08: save resource by case and space if not exist        
+        _logger.info("STEP08: Save resource from space %s and case id: %s ", space, case_id)
         save_resource_by_case_id(config, case, datamatrix_resources, space, resource)
 
         # STEP09: save projection dataframe in minio object storage
-        _logger.info("STEP10: Save projection dataframe from space %s and case id: %s ", space, case_id)
+        _logger.info("STEP9: Save projection dataframe from space %s and case id: %s ", space, case_id)
         save_projection_dataset(config, datamatrix_resources, projections_dataframe, space)
 
     _logger.info("Training job finalized")
