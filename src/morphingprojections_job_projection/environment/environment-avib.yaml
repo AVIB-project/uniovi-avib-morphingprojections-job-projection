@@ -4,7 +4,7 @@ mongodb:
   authentication-database: admin
   database: configuration
   username: root
-  password: password
+  password: 46cfdg1oXL
 
 minio:
   host: uniovi-hl.default.svc.cluster.local
