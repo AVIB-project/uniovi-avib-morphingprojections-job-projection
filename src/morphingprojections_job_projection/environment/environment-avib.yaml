@@ -1,5 +1,5 @@
 mongodb:
-  host: avib-mongodb.default.svc.cluster.local
+  host: gsdpi-mongodb.default.svc.cluster.local
   port: 27017
   authentication-database: admin
   database: configuration
@@ -9,5 +9,5 @@ mongodb:
 minio:
   host: uniovi-hl.default.svc.cluster.local
   port: 9000
-  access_key: BLBZSkLGtFD63XmP
-  secret_key: vY8jARXmV7tsp7HSmtuBPjzBy8BWG57s
+  access_key: RS6P1ApnSrDf9MaS
+  secret_key: weQJEUUEVfNZV1Zs0MnA0e9CT2d71jSK
