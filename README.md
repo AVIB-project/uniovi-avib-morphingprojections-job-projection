@@ -8,7 +8,7 @@
 
 ```
 $ putup --markdown uniovi-avib-morphingprojections-job-projection -p morphingprojections_job_projection \
-      -d "Uniovi AVIB Morphing Projection Job Projection Service." \
+      -d "Uniovi AVIB Morphing Projection Job Projection." \
       -u https://dev.azure.com/gsdpi/avib/_git/uniovi-avib-morphingprojections-job-projection
 ```
 
@@ -30,50 +30,40 @@ $ pip install -e .
 ```
 
 ```
-pip install tox
-pip install pyaml-env
-pip install mongoengine
-pip install minio
-pip install pandas
-pip install scikit-learn
+$ pip install tox
+$ pip install pyaml-env
+$ pip install pandas
+$ pip install mongoengine
+$ pip install minio
+$ pip install scikit-learn
 ```
 
 Installation your python pipeline packages in your virtual environment in development mode:
 
 ```
-pip freeze > requirements.txt
+$ pip freeze > requirements.txt
 ```
 
 # Docker
 
-build image for local environment:
-
-```
-docker build -t uniovi-avib-morphingprojections-job-projection:1.1.0 .
-
-docker tag uniovi-avib-morphingprojections-job-projection:1.1.0 avibdocker.azurecr.io/uniovi-avib-morphingprojections-job-projection:1.1.0
-
-docker push avibdocker.azurecr.io/uniovi-avib-morphingprojections-job-projection:1.1.0
-```
-
 build image for local minikube environment:
 
 ```
-docker build --build-arg ARG_PYTHON_PROFILES_ACTIVE=minikube -t uniovi-avib-morphingprojections-job-projection:1.1.0 .
+docker build -t morphingprojections-job-projection:1.1.0 .
 
-docker tag uniovi-avib-morphingprojections-job-projection:1.1.0 avibdocker.azurecr.io/uniovi-avib-morphingprojections-job-projection:1.1.0
+docker tag morphingprojections-job-projection:1.1.0 gsdpi/morphingprojections-job-projection:1.1.0
 
-docker push avibdocker.azurecr.io/uniovi-avib-morphingprojections-job-projection:1.1.0
+docker push gsdpi/morphingprojections-job-projection:1.1.0
 ```
 
 build image for avib environment:
 
 ```
-docker build --build-arg ARG_PYTHON_PROFILES_ACTIVE=avib -t uniovi-avib-morphingprojections-job-projection:1.1.0 .
+docker build --build-arg ARG_PYTHON_PROFILES_ACTIVE=avib -t morphingprojections-job-projection:1.1.0 .
 
-docker tag uniovi-avib-morphingprojections-job-projection:1.1.0 avibdocker.azurecr.io/uniovi-avib-morphingprojections-job-projection:1.1.0
+docker tag morphingprojections-job-projection:1.1.0 gsdpi/morphingprojections-job-projection:1.1.0
 
-docker push avibdocker.azurecr.io/uniovi-avib-morphingprojections-job-projection:1.1.0
+docker push gsdpi/morphingprojections-job-projection:1.1.0
 ```
 
 Execute job locally for a case_id 65cdc989fa8c8fdbcefac01e:

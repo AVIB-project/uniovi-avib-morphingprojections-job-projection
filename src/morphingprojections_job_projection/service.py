@@ -1,12 +1,12 @@
 import os
 import sys
-import math
 import time
 import argparse
 import logging
 
 from datetime import date, datetime
-from io import StringIO, BytesIO
+from io import BytesIO
+
 from pyaml_env import parse_config
 
 import numpy as np
@@ -426,12 +426,6 @@ def save_projection_dataset(config, datamatrix_resources, projections_dataframe,
     return 0
 
 def main(args):
-    """Wrapper allowing :func:`training` to be called with string arguments in a CLI fashion
-
-    Args:
-      args (List[str]): command line parameters as list of strings
-          (for example  ``[ "--case-id", "65cdc989fa8c8fdbcefac01e"]``).
-    """
     # get arguments and configure app logger
     args = parse_args(args)
     setup_logging(args.loglevel)
